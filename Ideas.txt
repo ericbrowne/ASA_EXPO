@@ -22,7 +22,7 @@ ASA Expo Project Ideas:
 
 5. Predicting which job sectors/states will survive the pandemic or sustain their economy above a certain threshold
 
-
+6. Look at hardests hit locations of COVIDD and use Social Vulnerable Index to identify places in trouble if the virus hits.  
 
 ## Hinton ML class course era
 # JSM International
