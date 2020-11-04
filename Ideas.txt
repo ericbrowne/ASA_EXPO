@@ -1,0 +1,60 @@
+ASA Expo Project Ideas:
+
+1. Disease Spread Prediction:  Number of Deaths and Cases
++ Predictors: Lockdown dummy variables, Population Density, Median Age of affected areas
++ Could Also try a Graph analysis
+
+
+
+2. COVID disproportionate to certain income levels?
++ Are certain income demographics more susecptible to COVID19
+
+3. Which sectors are most affected by job loss? Classification problem?
+
++ Are certain states more affected by job loss that others?
++ Classification on whether or not a certain job sector/state will lose a certain number of jobs
++ Predicting how many jobs per capita in a given sector a given state will lose over the next month? year?
+
+
+
+4. Measuring overall health of a state over time as COVID spreads
+
+
+5. Predicting which job sectors/states will survive the pandemic or sustain their economy above a certain threshold
+
+
+
+## Hinton ML class course era
+# JSM International
+# Independent Study with Cathy
+# Winter Break time to go hard
+
+# Files can be JSON or CSV (levels of disaggregation? Big files!)
+# IPUMP Interface for datasets
+# Query yourself in aggregation
+	# Adjusting Analysis Accordingly
+	# Something to direct analysis of the API
+
+# Challenge for Prediction: Whether time youre predicting for resembles current time
+	+ Explanatory variables change over time?
+		+ Need to predict those, or come up with a range of values for those variables as well as dependent variable
+	+ Predicting demand for hostpital services
+
+
+
+# Potential for retrospective analyses:
+	+ Which national policies were most effective?
+		+ Might be something to work in:
+	+ Fallback?
+	+ Can start with prediction, get a running start
+		+ Get base data (jan2020-April2020), and then predict for september 2020
+
+# The Next Pandemic:
+	+ This is our model for what happened this time and why
+	+ IF the next pandemic has similar attributes to this one, what happens?
+
+
+
+### Next Zoom Meeting:  Week 8, First week of november
+
+
