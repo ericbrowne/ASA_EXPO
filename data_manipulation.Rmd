@@ -1,0 +1,49 @@
+---
+title: "Data_Manipulation"
+author: "Isabel and Eric"
+date: "12/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+library(tidyverse)
+library(plyr)
+library(dplyr)
+
+```
+
+
+```{r}
+base_dat <- read_csv('19estimates_counties.csv')
+
+clist <- split(base_dat, base_dat$GEOID)
+
+```
+
+```{r}
+foo <- as.data.frame(t(clist[[1]]))
+
+#remove columns without data 
+countyA_dat <- foo[-c(1, 2, 3, 17, 20, 23, 24, 32, 33, 40, 47, 48, 56, 57, 65, 69, 70, 77, 78, 87, 90, 91, 94, 95, 98, 101, 104, 107, 108, 117, 118, 126, 127, 131, 132, 134, 138, 142, 143, 151, 152, 165, 166, 195, 196)]
+#there is a better way to do this - maybe if question number isnt a whole number
+
+#remove rows with all NAs 
+not_all_na <- function(x) any(!is.na(x))
+
+countyA_dat <- na_if(countyA_dat, "(X)")
+countyA_dat %>% select_if(not_all_na) #I cant tell if this is working or not
+
+```
+
+```{r}
+#TO DO:
+#- repeat chunk above for each df in clist 
+#- combine dfs into one 
+#- adjuct column names?
+```
+
