@@ -41,9 +41,49 @@ countyA_dat %>% select_if(not_all_na) #I cant tell if this is working or not
 ```
 
 ```{r}
-#TO DO:
-#- repeat chunk above for each df in clist 
-#- combine dfs into one 
-#- adjuct column names?
+clean_county <- function(county_df){
+  t_county <- as.data.frame(t(county_df))
+  county_dat <- t_county[-c(1, 2, 3, 17, 20, 23, 24, 32, 33, 40, 47, 48, 56, 57, 65, 69, 70, 77, 78, 87, 90, 91, 94, 95, 98, 101, 104, 107, 108, 117, 118, 126, 127, 131, 132, 134, 138, 142, 143, 151, 152, 165, 166, 195, 196)]
+  not_all_na <- function(x) any(!is.na(x))
+
+  county_dat <- na_if(county_dat, "(X)")
+  county_dat <- county_dat %>% select_if(not_all_na)
+  #rename cols 
+  names(county_dat) <- county_dat[6,]
+
+
+  return(county_dat)
+}
+  
 ```
+
+```{r}
+
+new_tib_list <- lapply(clist, clean_county)
+```
+
+```{r}
+add_loc_cols <- function(county_dat){
+  county_dat$GEOID <- as.list(county_dat[2,][1:15])
+  county_dat$GEONAME <- as.list(county_dat[3,][1:15])
+  return(county_dat)
+}
+
+tiblist <- lapply(new_tib_list, add_loc_cols)
+
+tiblist[[2]]
+
+#TO DO:
+#- make geo locations cols? 
+#- combine dfs into one 
+```
+
+```{r}
+svi <- read.csv("SVI2018_US_COUNTY.csv")
+svi
+
+```
+
+
+
 
