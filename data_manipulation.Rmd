@@ -19,6 +19,7 @@ library(dplyr)
 
 
 ```{r}
+#this is cities not counties fuck my life 
 base_dat <- read_csv('19estimates_counties.csv')
 
 clist <- split(base_dat, base_dat$GEOID)
@@ -74,6 +75,7 @@ tiblist <- lapply(new_tib_list, add_loc_cols)
 tiblist[[2]]
 
 #TO DO:
+#-try pivot wider? 
 #- make geo locations cols? 
 #- combine dfs into one 
 ```

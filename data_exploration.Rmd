@@ -1,0 +1,71 @@
+---
+title: "data_exploration"
+author: "Isabel and Eric"
+date: "12/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(plyr)
+library(dplyr)
+
+```
+
+```{r read-in}
+svi <- read.csv("SVI2018_US_COUNTY.csv")
+
+sahie <- read.csv("SAHIE_Manipulated.csv")
+
+deaths <- read.csv("covid_deaths_usafacts.csv")
+
+pop <- read_csv("covid_county_population_usafacts.csv")
+case_count <- read_csv("covid_confirmed_usafacts.csv")
+```
+
+
+```{r}
+get_currents <- function(wholedf){
+  fips <- wholedf[1]
+  current_tot <- rev(wholedf)[1]
+  cutdf <- cbind(fips, current_tot)
+  return(cutdf)
+}
+
+deaths_now <- deaths[!(deaths$countyFIPS==0),]
+deaths_now <- get_currents(deaths_now)
+
+county_count <- case_count[!(case_count$countyFIPS==0),]
+current_count <- get_currents(county_count)
+pop <- pop[!(pop$countyFIPS==0),]
+
+covid_totals <- merge(deaths_now, current_count, by='countyFIPS') 
+covid_totals <- merge(covid_totals, pop, by='countyFIPS') 
+
+```
+
+```{r}
+names(covid_totals)[1] <- "FIPS"
+covid_totals <- covid_totals[,sapply(covid_totals, is.numeric)]
+covid_totals$case_by_pop <- covid_totals$`12/16/20` / covid_totals$population *10000
+covid_totals$death_by_pop <- covid_totals$X12.15.20 /  covid_totals$population *10000
+
+```
+
+```{r}
+
+svi_covid <- merge(svi, covid_totals, by="FIPS")
+
+svi_covid <- (svi_covid[-c(3:6)])
+
+print(cor(svi_covid$case_by_pop, svi_covid))
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print(cor(svi_covid$death_by_pop, svi_covid))
+
+```
+
