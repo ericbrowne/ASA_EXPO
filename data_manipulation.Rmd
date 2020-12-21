@@ -81,8 +81,7 @@ tiblist[[2]]
 ```
 
 ```{r}
-svi <- read.csv("SVI2018_US_COUNTY.csv")
-svi
+
 
 ```
 
