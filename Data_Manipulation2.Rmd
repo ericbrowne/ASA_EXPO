@@ -1,0 +1,156 @@
+---
+title: "ASA Exposition Data Manipulation 1"
+author: "Eric Browne, Isabel Osgood"
+date: "12/16/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Start with Isabel's code from 12/15, 12/16:
+
+```{r}
+library(tidyverse)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+```
+
+### Working on the Primary ACS Core Dataset
+```{r}
+base_dat <- read_csv('19estimates_counties.csv')
+clist <- split(base_dat, base_dat$GEOID)
+```
+
+```{r}
+foo <- as.data.frame(t(clist[[1]]))
+#remove columns without data 
+countyA_dat <- foo[-c(1, 2, 3, 17, 20, 23, 24, 32, 33, 40, 47, 48, 56, 57, 65, 69, 70, 77, 78, 87, 90, 91, 94, 95, 98, 101, 104, 107, 108, 117, 118, 126, 127, 131, 132, 134, 138, 142, 143, 151, 152, 165, 166, 195, 196)]
+#there is a better way to do this - maybe if question number isnt a whole number
+#remove rows with all NAs 
+not_all_na <- function(x) any(!is.na(x))
+countyA_dat <- na_if(countyA_dat, "(X)")
+countyA_dat %>% select_if(not_all_na) #I cant tell if this is working or not
+```
+
+```{r}
+clean_county <- function(county_df){
+  t_county <- as.data.frame(t(county_df))
+  county_dat <- t_county[-c(1, 2, 3, 17, 20, 23, 24, 32, 33, 40, 47, 48, 56, 57, 65, 69, 70, 77, 78, 87, 90, 91, 94, 95, 98, 101, 104, 107, 108, 117, 118, 126, 127, 131, 132, 134, 138, 142, 143, 151, 152, 165, 166, 195, 196)]
+  not_all_na <- function(x) any(!is.na(x))
+  county_dat <- na_if(county_dat, "(X)")
+  county_dat <- county_dat %>% select_if(not_all_na)
+  #rename cols 
+  names(county_dat) <- county_dat[6,]
+  return(county_dat)
+}
+  
+```
+
+```{r}
+new_tib_list <- lapply(clist, clean_county)
+```
+
+```{r}
+add_loc_cols <- function(county_dat){
+  county_dat$GEOID <- as.list(county_dat[2,][1:15])
+  county_dat$GEONAME <- as.list(county_dat[3,][1:15])
+  return(county_dat)
+}
+tiblist <- lapply(new_tib_list, add_loc_cols)
+tiblist[[2]]
+#TO DO:
+#- make geo locations cols? 
+#- combine dfs into one 
+```
+
+
+### Working on SVI (Vunerability Index) Dataset 
+```{r}
+
+## Read in County level CSV
+svi <- read.csv("SVI2018_US_COUNTY.csv")
+svi
+
+
+##Plotting some histograms next:
+
+#First, pick two states with worst economic performance (from memory):
+# 1. Alabama, 2. Mississippi
+newdata <- subset(mydata, age >= 20 | age < 10,
+select=c(ID, Weight))
+
+al_SVI<-subset(svi,STATE=='ALABAMA',select=c(STATE:E_DAYPOP))
+miss_SVI<-subset(svi,STATE=='MISSISSIPPI',select=c(STATE:E_DAYPOP))
+
+dim(al_SVI) #67
+dim(miss_SVI) #82
+
+
+
+#Plotting Hist/Pair Plots:  
+#Variables:
+#1. E_POV: Persons below poverty estimate
+#2. E_UNEMP: Civilian Unemployted Estimate
+#3. E_PCI: Per Capita Income
+#4. E_NOHSD: Persons w/o HS diploma
+#5. E_DISABL: Civilian population with Disability
+#6. E_MINRTY: MInority population estimates
+#7. E_CROWD: Occupants per room (with more people than rooms in house)
+#8. RLP_THEMES (Overall SVI variable) (Factor Variable)
+
+
+## Should also look into percentages for each of these variables
+## Percentages are per capita
+
+## Variables should also be somewhat equally proportioned for each of the 4 categories:
+# 1. SocioEconomic
+# 2. Household Composition
+# 3. Minority Status/Language
+# 4. Housing Type/Transportation
+
+
+qplot(miss_SVI$E_POV,geom='histogram')
+qplot(miss_SVI$E_UNEMP,geom='histogram')
+qplot(miss_SVI$E_PCI,geom='histogram')
+qplot(miss_SVI$E_NOHSDP,geom='histogram')
+qplot(miss_SVI$E_DISABL,geom='histogram')
+qplot(miss_SVI$E_MINRTY,geom='histogram')
+qplot(miss_SVI$E_CROWD,geom='histogram')
+
+qplot(al_SVI$E_POV,geom='histogram')
+qplot(al_SVI$E_UNEMP,geom='histogram')
+qplot(al_SVI$E_PCI,geom='histogram')
+qplot(al_SVI$E_NOHSDP,geom='histogram')
+qplot(al_SVI$E_DISABL,geom='histogram')
+qplot(al_SVI$E_MINRTY,geom='histogram')
+qplot(al_SVI$E_CROWD,geom='histogram')
+#print(al_SVI$E_CROWD)
+
+
+# Alabama Pairs Plot
+pairs(~ E_POV + E_UNEMP + E_PCI + E_NOHSDP + E_DISABL + E_MINRTY + E_CROWD, data = al_SVI)
+
+#Mississippi Pairs Plot
+pairs(~ E_POV + E_UNEMP + E_PCI + E_NOHSDP + E_DISABL + E_MINRTY + E_CROWD, data = miss_SVI)
+
+## NOTE: DOWNLOAD CITATIONS NEEDED
+
+```
+
+
+
+### Working on the SAHIE Dataset
+```{r}
+
+sahie<-read.csv("SAHIE_Manipulated2.csv")
+sahie
+
+# Plotting Some Histograms next:
+
+
+
+```
+
