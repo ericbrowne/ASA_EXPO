@@ -11,15 +11,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 ```{r}
-library(tidyverse)
 library(plyr)
-library(dplyr)
-
+library(tidyverse)
 ```
 
 
 ```{r}
-#this is cities not counties fuck my life 
+
 base_dat <- read_csv('19estimates_counties.csv')
 
 clist <- split(base_dat, base_dat$GEOID)
@@ -65,24 +63,23 @@ new_tib_list <- lapply(clist, clean_county)
 
 ```{r}
 add_loc_cols <- function(county_dat){
-  county_dat$GEOID <- as.list(county_dat[2,][1:15])
-  county_dat$GEONAME <- as.list(county_dat[3,][1:15])
+  county_dat$TableID  <- rep(county_dat[1:3, 1][1], length(county_dat$Spouse))
+  county_dat$GeoID <- rep(county_dat[1:3, 1][2], length(county_dat$Spouse))
+  county_dat$GeoName <- rep(county_dat[1:3, 1][3], length(county_dat$Spouse))
+  county_dat <- county_dat[-c(1, 2, 3, 4, s6), ]
   return(county_dat)
 }
 
 tiblist <- lapply(new_tib_list, add_loc_cols)
 
-tiblist[[2]]
+tiblist[[1]]
 
-#TO DO:
-#-try pivot wider? 
-#- make geo locations cols? 
-#- combine dfs into one 
 ```
 
 ```{r}
+CompleteEstimates <- bind_rows(tiblist)
 
-
+write_csv(CompleteEstimates, 'estiamtes19_v2.csv')
 ```
 
 
