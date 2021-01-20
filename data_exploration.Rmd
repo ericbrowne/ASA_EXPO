@@ -63,9 +63,20 @@ svi_covid <- merge(svi, covid_totals, by="FIPS")
 
 svi_covid <- (svi_covid[-c(3:6)])
 
-print(cor(svi_covid$case_by_pop, svi_covid))
-print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-print(cor(svi_covid$death_by_pop, svi_covid))
+#print(cor(svi_covid$case_by_pop, svi_covid))
+#print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+#print(cor(svi_covid$death_by_pop, svi_covid))
+
+case_svi_cor <- cor(svi_covid$case_by_pop, svi_covid)
+high_case_svi_i <- which(case_svi_cor>=0.1)
+print(case_svi_cor[high_case_svi_i])
+print(colnames(svi_covid)[high_case_svi_i])#need to include the variable names 
+
+
+death_svi_cor <- cor(svi_covid$death_by_pop, svi_covid)
+high_death_svi_i <- which(death_svi_cor>=0.1)
+print(death_svi_cor[high_death_svi_i])
+print(colnames(svi_covid)[high_death_svi_i])#need to include the variable names 
 
 ```
 
