@@ -83,6 +83,13 @@ write_csv(CompleteEstimates, 'Datasets/estiamtes19_v2.csv')
 ```
 
 ```{r}
+acs <- read.csv('Datasets/estiamtes19_v2.csv')
+num_county <- unique(acs['GeoName'])
+print(unique(acs['GeoName']))
+```
+
+
+```{r}
 # library (readr)
  # 
  # cv.ny<-read.csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"))
