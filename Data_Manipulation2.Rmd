@@ -20,7 +20,7 @@ library(ggplot2)
 
 ### Working on the Primary ACS Core Dataset
 ```{r}
-base_dat <- read_csv('19estimates_counties.csv')
+base_dat <- read_csv('Datasets/19estimates_counties.csv')
 clist <- split(base_dat, base_dat$GEOID)
 ```
 
@@ -145,7 +145,7 @@ pairs(~ E_POV + E_UNEMP + E_PCI + E_NOHSDP + E_DISABL + E_MINRTY + E_CROWD, data
 ### Working on the SAHIE Dataset
 ```{r}
 
-sahie<-read.csv("SAHIE_Manipulated2.csv")
+sahie<-read.csv("Datasets/SAHIE_Manipulated2.csv")
 sahie
 
 # Plotting Some Histograms next:

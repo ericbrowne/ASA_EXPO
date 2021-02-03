@@ -18,7 +18,7 @@ library(tidyverse)
 
 ```{r}
 
-base_dat <- read_csv('19estimates_counties.csv')
+base_dat <- read_csv('Datasets/19estimates_counties.csv')
 
 clist <- split(base_dat, base_dat$GEOID)
 
@@ -79,9 +79,14 @@ tiblist[[1]]
 ```{r}
 CompleteEstimates <- bind_rows(tiblist)
 
-write_csv(CompleteEstimates, 'estiamtes19_v2.csv')
+write_csv(CompleteEstimates, 'Datasets/estiamtes19_v2.csv')
 ```
 
+```{r}
+# library (readr)
+ # 
+ # cv.ny<-read.csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"))
+```
 
 
 
