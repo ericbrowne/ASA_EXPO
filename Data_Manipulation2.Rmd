@@ -148,6 +148,8 @@ pairs(~ E_POV + E_UNEMP + E_PCI + E_NOHSDP + E_DISABL + E_MINRTY + E_CROWD, data
 sahie<-read.csv("Datasets/SAHIE_Manipulated2.csv")
 sahie
 
+sahie_county <- sahie[sahie$geocat > 40, ]
+
 # Plotting Some Histograms next:
 
 
