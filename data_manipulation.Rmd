@@ -90,9 +90,14 @@ print(unique(acs['GeoName']))
 
 
 ```{r}
-# library (readr)
- # 
- # cv.ny<-read.csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"))
+library (readr)
+cv<-read.csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"))
+
+#drop date bc we want aggregation
+cv <- cv[-c(1)]
+
+cv2 <- cv %>% group_by(fips) %>% summarize(total_cases = sum(cases), total_deaths = sum(deaths))
+
 ```
 
 

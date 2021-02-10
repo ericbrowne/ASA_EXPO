@@ -20,63 +20,60 @@ library(dplyr)
 ```{r read-in}
 svi <- read.csv("Datasets/SVI2018_US_COUNTY.csv")
 
-sahie <- read.csv("Datasets/SAHIE_Manipulated.csv")
+#sahie <- read.csv("Datasets/SAHIE_Manipulated.csv")
 
-deaths <- read.csv("Datasets/covid_deaths_usafacts.csv")
+#deaths <- read.csv("Datasets/covid_deaths_usafacts.csv")
 
 pop <- read_csv("Datasets/covid_county_population_usafacts.csv")
-case_count <- read_csv("Datasets/covid_confirmed_usafacts.csv")
+#case_count <- read_csv("Datasets/covid_confirmed_usafacts.csv")
 ```
 
 
 ```{r}
-get_currents <- function(wholedf){
-  fips <- wholedf[1]
-  current_tot <- rev(wholedf)[1]
-  cutdf <- cbind(fips, current_tot)
-  return(cutdf)
-}
+#just reading in covid data from enviornment 
+#run data_manipulation.Rmd before to add it to enviornment 
+#fix later
+cv2 <- cv2 %>% rename(FIPS=fips)
+#add covid data to SVI
+svi <- merge(cv2, svi, by='FIPS') 
+#add population
+pop <- pop[-c(2,3)] %>% rename(FIPS=countyFIPS)
+svi <- merge(pop, svi, by='FIPS') 
 
-deaths_now <- deaths[!(deaths$countyFIPS==0),]
-deaths_now <- get_currents(deaths_now)
-
-county_count <- case_count[!(case_count$countyFIPS==0),]
-current_count <- get_currents(county_count)
-pop <- pop[!(pop$countyFIPS==0),]
-
-covid_totals <- merge(deaths_now, current_count, by='countyFIPS') 
-covid_totals <- merge(covid_totals, pop, by='countyFIPS') 
 
 ```
 
-```{r}
-names(covid_totals)[1] <- "FIPS"
-covid_totals <- covid_totals[,sapply(covid_totals, is.numeric)]
-covid_totals$case_by_pop <- covid_totals$`12/16/20` / covid_totals$population *10000
-covid_totals$death_by_pop <- covid_totals$X12.15.20 /  covid_totals$population *10000
 
+```{r}
+#adjust covid totals to ratios of population
+svi$case_by_pop <- svi$total_cases / svi$population *10000
+svi$death_by_pop <- svi$total_deaths / svi$population *10000
 ```
 
 ```{r}
 
-svi_covid <- merge(svi, covid_totals, by="FIPS")
 
-svi_covid <- (svi_covid[-c(3:6)])
+```
+
+```{r}
 
 #print(cor(svi_covid$case_by_pop, svi_covid))
 #print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 #print(cor(svi_covid$death_by_pop, svi_covid))
 
-case_svi_cor <- cor(svi_covid$case_by_pop, svi_covid)
+#drop none numeric columns (county/state names)
+svi_temp <- svi[-c(6:9)]
+
+case_svi_cor <- cor(svi_temp$case_by_pop, svi_temp)
 high_case_svi_i <- which(case_svi_cor>=0.1)
 print(case_svi_cor[high_case_svi_i])
-print(colnames(svi_covid)[high_case_svi_i])#need to include the variable names 
+print(colnames(svi_temp)[high_case_svi_i])#need to include the variable names 
 
 
-death_svi_cor <- cor(svi_covid$death_by_pop, svi_covid)
+death_svi_cor <- cor(svi_temp$death_by_pop, svi_temp)
 high_death_svi_i <- which(death_svi_cor>=0.1)
 print(death_svi_cor[high_death_svi_i])
-print(colnames(svi_covid)[high_death_svi_i])#need to include the variable names 
+print(colnames(svi_temp)[high_death_svi_i])#need to include the variable names 
 
 ```
 
