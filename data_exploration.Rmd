@@ -7,6 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+install.packages("mclust")
 ```
 
 
@@ -14,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(plyr)
 library(dplyr)
+library(mclust)
 
 ```
 
@@ -74,6 +77,30 @@ death_svi_cor <- cor(svi_temp$death_by_pop, svi_temp)
 high_death_svi_i <- which(death_svi_cor>=0.1)
 print(death_svi_cor[high_death_svi_i])
 print(colnames(svi_temp)[high_death_svi_i])#need to include the variable names 
+
+```
+
+
+```{r}
+
+#ward hierarchical clustering 
+#just thrwoing shit at the wall and seeing what sticks
+
+d <- dist(svi_temp, method = "euclidean") #translate data to distance
+fit <- hclust(d, method = "ward.D")
+plot(fit)
+groups <- cutree(fit, k = 5)
+
+plot.new()
+rect.hclust(fit, k=5, border="red")
+```
+
+```{r}
+#library(mclust)
+fit <- Mclust(svi_temp)
+plot(fit) # plot results
+summary(fit) # display the best mode
+
 
 ```
 
