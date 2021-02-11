@@ -79,6 +79,15 @@ print(death_svi_cor[high_death_svi_i])
 print(colnames(svi_temp)[high_death_svi_i])#need to include the variable names 
 
 ```
+```{r}
+#drop margins of error 
+
+#colnames(svi_temp)
+
+svi_temp <- svi_temp[, -grep('^M', colnames(svi_temp)) ]
+colnames(svi_temp)
+```
+
 
 
 ```{r}
