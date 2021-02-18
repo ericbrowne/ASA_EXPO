@@ -106,9 +106,9 @@ rect.hclust(fit, k=5, border="red")
 
 ```{r}
 #library(mclust)
-fit <- Mclust(svi_temp)
-plot(fit) # plot results
-summary(fit) # display the best mode
+fitx <- Mclust(svi_temp)
+plot(fitx) # plot results
+summary(fitx) # display the best mode
 
 
 ```
