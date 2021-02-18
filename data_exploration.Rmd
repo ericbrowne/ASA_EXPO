@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-install.packages("mclust")
+#install.packages("mclust")
 ```
 
 
@@ -84,7 +84,7 @@ print(colnames(svi_temp)[high_death_svi_i])#need to include the variable names
 
 #colnames(svi_temp)
 
-svi_temp <- svi_temp[, -grep('^M', colnames(svi_temp)) ]
+svi_temp <- svi_temp[, grep('^EP', colnames(svi_temp)) ]
 colnames(svi_temp)
 ```
 
