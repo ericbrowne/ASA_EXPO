@@ -80,6 +80,9 @@ tiblist[[1]]
 
 ```{r}
 CompleteEstimates <- bind_rows(tiblist)
+print(colnames(CompleteEstimates)) #98 - 127 list of main language spoken at home 
+#drop language options 
+CompleteEstimates <- CompleteEstimates[-c(98:127)]
 
 write_csv(CompleteEstimates, 'Datasets/estiamtes19_v2.csv')
 ```
@@ -89,6 +92,11 @@ acs <- read.csv('Datasets/estiamtes19_v2.csv')
 num_county <- unique(acs['GeoName'])
 print(unique(acs['GeoName']))
 ```
+```{r}
+print(length(num_county))
+print(colnames(acs))
+```
+
 
 
 ```{r}
