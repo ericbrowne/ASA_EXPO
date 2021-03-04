@@ -34,13 +34,18 @@ pop <- read_csv("Datasets/covid_county_population_usafacts.csv")
 
 ```{r}
 #just reading in covid data from enviornment 
-#run data_manipulation.Rmd before to add it to enviornment 
+#run data_manipulation.Rmd to update covid data with api 
+
+cv2 <- read_csv("covid_data.csv")
+cv2 <- cv2[c(1, 2, 4)]
 #fix later
-cv2 <- cv2 %>% rename(FIPS=fips)
+names(cv2)[1] <- "FIPS"
 #add covid data to SVI
 svi <- merge(cv2, svi, by='FIPS') 
 #add population
-pop <- pop[-c(2,3)] %>% rename(FIPS=countyFIPS)
+pop <- pop[-c(2,3)]
+names(pop)[1] <- "FIPS"
+
 svi <- merge(pop, svi, by='FIPS') 
 
 

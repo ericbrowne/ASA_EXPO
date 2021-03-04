@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 ```{r}
-library(plyr)
+library(dplyr)
 library(tidyverse)
 ```
 
@@ -106,7 +106,13 @@ cv<-read.csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master
 #drop date bc we want aggregation
 cv <- cv[-c(1)]
 
-cv2 <- cv %>% group_by(fips) %>% summarize(total_cases = sum(cases), total_deaths = sum(deaths))
+total_cases <- aggregate(cv$cases, by=list(fips=cv$fips), FUN=sum)
+total_death <- aggregate(cv$deaths, by=list(fips=cv$fips), FUN = sum)
+
+cv2 <- cbind(total_cases, total_death)
+names(cv2) <- c("fips", "total_cases", "fips", "total_death")
+write_csv(cv2, 'Datasets/covid_data.csv')
+
 
 ```
 
