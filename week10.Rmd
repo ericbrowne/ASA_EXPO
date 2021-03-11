@@ -1,0 +1,85 @@
+---
+title: "week10"
+author: "Isabel and Eric"
+date: "3/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#start putting together prettier script 
+
+svi <- read.csv("Datasets/SVI2018_US_COUNTY.csv")
+#drop none numeric columns (county/state names)
+svi_temp <- svi[-c(6:9)]
+
+#drop margins of error 
+
+#colnames(svi_temp)
+
+svi_temp <- svi_temp[, grep('^EP', colnames(svi_temp)) ]
+colnames(svi_temp)
+```
+
+```{r}
+#get ideal number of clusters 
+fviz_nbclust(svi_temp, FUN = hcut, method = "wss")
+fviz_nbclust(svi_temp, FUN = hcut, method = "silhouette")
+
+```
+
+
+```{r}
+#ward hierarchical clustering 
+#just thrwoing shit at the wall and seeing what sticks
+
+d <- dist(svi_temp, method = "euclidean") #translate data to distance
+fit <- hclust(d, method = "ward.D2")
+plot(fit, cex = 0.6, hang = -1)
+groups <- cutree(fit, k = 3)
+
+table(groups)
+#plot.new()
+#rect.hclust(fit, k=5, border="red")
+```
+
+
+
+
+```{r}
+fviz_cluster(list(data = svi_temp, cluster = groups))
+```
+
+
+```{r}
+fviz_nbclust(svi_temp, FUN = hcut, method = "wss")
+
+#ward hierarchical clustering 
+#just thrwoing shit at the wall and seeing what sticks
+
+d <- dist(svi_temp, method = "euclidean") #translate data to distance
+fit <- hclust(d, method = "complete")
+plot(fit)
+groups <- cutree(fit, k = 3)
+
+table(groups)
+#plot.new()
+#rect.hclust(fit, k=5, border="red")
+
+
+```
+
+```{r}
+library(cluster)
+hc_a <- agnes(svi_temp, method = "ward")
+groups <- cutree(as.hclust(hc_a), k = 3)
+
+table(groups)
+hc_a$ac
+
+fviz_cluster(list(data = svi_temp, cluster = groups))
+
+```
