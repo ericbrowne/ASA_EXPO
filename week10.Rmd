@@ -83,3 +83,39 @@ hc_a$ac
 fviz_cluster(list(data = svi_temp, cluster = groups))
 
 ```
+
+
+
+```{r}
+# Cut diana() tree into 4 groups
+hc_d <- diana(svi_temp)
+groups <- cutree(as.hclust(hc_d), k = 3)
+
+table(groups)
+hc_d$dc
+```
+
+
+```{r}
+#add clusters to dataframe 
+svi_temp$cluster = groups
+
+pop <- read_csv("Datasets/covid_county_population_usafacts.csv")
+
+#just reading in covid data from enviornment 
+#run data_manipulation.Rmd to update covid data with api 
+
+cv2 <- read_csv("Datasets/covid_data.csv")
+cv2 <- cv2[c(1, 2, 4)]
+#fix later
+names(cv2)[1] <- "FIPS"
+#add covid data to SVI
+svi_temp <- merge(cv2, svi_temp, by='FIPS') 
+#add population
+pop <- pop[-c(2,3)]
+names(pop)[1] <- "FIPS"
+
+svi_temp <- merge(pop, svi_temp, by='FIPS') 
+
+
+```
