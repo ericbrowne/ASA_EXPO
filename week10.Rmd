@@ -21,6 +21,7 @@ svi_temp <- svi[-c(6:9)]
 #colnames(svi_temp)
 
 svi_temp <- svi_temp[, grep('^EP', colnames(svi_temp)) ]
+svi_temp$FIPS <- svi$FIPS
 colnames(svi_temp)
 ```
 
@@ -116,6 +117,12 @@ pop <- pop[-c(2,3)]
 names(pop)[1] <- "FIPS"
 
 svi_temp <- merge(pop, svi_temp, by='FIPS') 
-
-
 ```
+
+
+```{r}
+#adjust covid totals to ratios of population
+svi_temp$case_by_pop <- svi_temp$total_cases / svi_temp$population *10000
+svi_temp$death_by_pop <- svi_temp$total_death / svi_temp$population *10000
+```
+
