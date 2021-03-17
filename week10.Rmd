@@ -7,22 +7,32 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+#install.packages("naniar")
+library(tidyverse)
+library(naniar)
+library(factoextra)
+library(cluster)
 ```
 
 ```{r}
 #start putting together prettier script 
-
+#read in 
+#Social Vunerability Index
 svi <- read.csv("Datasets/SVI2018_US_COUNTY.csv")
+
 #drop none numeric columns (county/state names)
 svi_temp <- svi[-c(6:9)]
-
 #drop margins of error 
-
 #colnames(svi_temp)
-
 svi_temp <- svi_temp[, grep('^EP', colnames(svi_temp)) ]
 svi_temp$FIPS <- svi$FIPS
 colnames(svi_temp)
+
+svi_temp <- svi_temp %>% replace_with_na_all(condition = ~.x == -999) #converts -999 to na
+print(dim(svi_temp))
+svi_temp <- svi_temp %>% drop_na()  #drops NA - only lose one county 
+print(dim(svi_temp))
+
 ```
 
 ```{r}
