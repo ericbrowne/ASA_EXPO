@@ -35,14 +35,13 @@ fviz_nbclust(svi_temp, FUN = hcut, method = "silhouette")
 
 ```{r}
 #ward hierarchical clustering 
-#just thrwoing shit at the wall and seeing what sticks
 
 d <- dist(svi_temp, method = "euclidean") #translate data to distance
 fit <- hclust(d, method = "ward.D2")
 plot(fit, cex = 0.6, hang = -1)
-groups <- cutree(fit, k = 3)
+groups_w <- cutree(fit, k = 3)
 
-table(groups)
+table(groups_w)
 #plot.new()
 #rect.hclust(fit, k=5, border="red")
 ```
@@ -51,55 +50,68 @@ table(groups)
 
 
 ```{r}
-fviz_cluster(list(data = svi_temp, cluster = groups))
+fviz_cluster(list(data = svi_temp, cluster = groups_w))
 ```
 
 
 ```{r}
 fviz_nbclust(svi_temp, FUN = hcut, method = "wss")
 
-#ward hierarchical clustering 
+#complete hierarchical clustering 
 #just thrwoing shit at the wall and seeing what sticks
 
 d <- dist(svi_temp, method = "euclidean") #translate data to distance
 fit <- hclust(d, method = "complete")
 plot(fit)
-groups <- cutree(fit, k = 3)
+groups_c <- cutree(fit, k = 3)
 
-table(groups)
+table(groups_c)
 #plot.new()
 #rect.hclust(fit, k=5, border="red")
 
+fviz_cluster(list(data = svi_temp, cluster = groups_c))
+
 
 ```
 
 ```{r}
+#agglomerative nesting 
+#agnes clustering 
 library(cluster)
-hc_a <- agnes(svi_temp, method = "ward")
-groups <- cutree(as.hclust(hc_a), k = 3)
+hc_a <- agnes(svi_temp, method = "average")
+groups_a <- cutree(as.hclust(hc_a), k = 3)
 
-table(groups)
+table(groups_a)
 hc_a$ac
 
-fviz_cluster(list(data = svi_temp, cluster = groups))
+fviz_cluster(list(data = svi_temp, cluster = groups_a))
 
 ```
 
 
 
 ```{r}
-# Cut diana() tree into 4 groups
-hc_d <- diana(svi_temp)
-groups <- cutree(as.hclust(hc_d), k = 3)
+#diana clustering
 
-table(groups)
+# Cut diana() tree into 
+hc_d <- diana(svi_temp)
+groups_d <- cutree(as.hclust(hc_d), k = 3)
+
+table(groups_d)
 hc_d$dc
+
+fviz_cluster(list(data = svi_temp, cluster = groups_d))
+
 ```
 
 
 ```{r}
 #add clusters to dataframe 
-svi_temp$cluster = groups
+svi_temp$cluster_ward = groups_w
+svi_temp$cluster_complete = groups_c
+svi_temp$cluster_agnes = groups_a
+svi_temp$cluster_diana = groups_d
+
 
 pop <- read_csv("Datasets/covid_county_population_usafacts.csv")
 
@@ -117,12 +129,44 @@ pop <- pop[-c(2,3)]
 names(pop)[1] <- "FIPS"
 
 svi_temp <- merge(pop, svi_temp, by='FIPS') 
+
+
+#adjust covid totals to ratios of population
+svi_temp$case_by_pop <- svi_temp$total_cases / svi_temp$population
+svi_temp$death_by_pop <- svi_temp$total_death / svi_temp$population
 ```
 
 
 ```{r}
-#adjust covid totals to ratios of population
-svi_temp$case_by_pop <- svi_temp$total_cases / svi_temp$population *10000
-svi_temp$death_by_pop <- svi_temp$total_death / svi_temp$population *10000
+table(groups_w)
+table(groups_c)
+table(groups_a)
+table(groups_d)
 ```
+
+
+```{r}
+ward <- aggregate(svi_temp, list(svi_temp$cluster_ward), mean)
+ward
+```
+
+```{r}
+completeclust <- aggregate(svi_temp, list(svi_temp$cluster_complete), mean)
+completeclust
+```
+
+
+```{r}
+agnes <- aggregate(svi_temp, list(svi_temp$cluster_agnes), mean)
+agnes
+```
+
+
+```{r}
+diana <- aggregate(svi_temp, list(svi_temp$cluster_diana), mean)
+diana
+```
+
+
+
 
