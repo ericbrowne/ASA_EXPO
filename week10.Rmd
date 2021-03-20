@@ -116,27 +116,46 @@ fviz_cluster(list(data = svi_temp, cluster = groups_d))
 
 
 ```{r}
-#add clusters to dataframe 
+#add clusters to new dataframe 
 svi_temp$cluster_ward = groups_w
 svi_temp$cluster_complete = groups_c
 svi_temp$cluster_agnes = groups_a
 svi_temp$cluster_diana = groups_d
 
 
-pop <- read_csv("Datasets/covid_county_population_usafacts.csv")
+table(groups_w)
+table(groups_c)
+table(groups_a)
+table(groups_d)
 
-#just reading in covid data from enviornment 
-#run data_manipulation.Rmd to update covid data with api 
+#add in population and 
+pop <- as_tibble(cbind(svi$FIPS, svi$E_TOTPOP))
+
+#get updated covid data
+library (readr)
+cv<-read.csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"))
+
+#drop date bc we want aggregation
+cv <- cv[-c(1)]
+
+total_cases <- aggregate(cv$cases, by=list(fips=cv$fips), FUN=sum)
+total_death <- aggregate(cv$deaths, by=list(fips=cv$fips), FUN = sum)
+
+cv2 <- cbind(total_cases, total_death)
+names(cv2) <- c("fips", "total_cases", "fips", "total_death")
+write_csv(cv2, 'Datasets/covid_data.csv')
+
 
 cv2 <- read_csv("Datasets/covid_data.csv")
 cv2 <- cv2[c(1, 2, 4)]
 #fix later
-names(cv2)[1] <- "FIPS"
+names(cv2) <- c("FIPS", "total_cases", "total_death")
+
 #add covid data to SVI
 svi_temp <- merge(cv2, svi_temp, by='FIPS') 
+
 #add population
-pop <- pop[-c(2,3)]
-names(pop)[1] <- "FIPS"
+names(pop) <- c("FIPS", "population")
 
 svi_temp <- merge(pop, svi_temp, by='FIPS') 
 
@@ -148,35 +167,79 @@ svi_temp$death_by_pop <- svi_temp$total_death / svi_temp$population
 
 
 ```{r}
-table(groups_w)
-table(groups_c)
-table(groups_a)
-table(groups_d)
+
 ```
 
 
 ```{r}
-ward <- aggregate(svi_temp, list(svi_temp$cluster_ward), mean)
+ward <- aggregate(svi_clust, list(svi_clust$cluster_ward), mean)
 ward
 ```
 
 ```{r}
-completeclust <- aggregate(svi_temp, list(svi_temp$cluster_complete), mean)
+completeclust <- aggregate(svi_clust, list(svi_clust$cluster_complete), mean)
 completeclust
 ```
 
 
 ```{r}
-agnes <- aggregate(svi_temp, list(svi_temp$cluster_agnes), mean)
+agnes <- aggregate(svi_clust, list(svi_clust$cluster_agnes), mean)
 agnes
 ```
 
 
 ```{r}
-diana <- aggregate(svi_temp, list(svi_temp$cluster_diana), mean)
+diana <- aggregate(svi_clust, list(svi_clust$cluster_diana), mean)
 diana
 ```
 
+# Cluster Evaluation
+```{r}
+#base level prediction 
+noclust <- select(svi_temp, -c(cluster_diana, cluster_agnes, cluster_complete, cluster_ward))
+base_model <- glm(case_by_pop ~ ., data=svi_temp)
+summary(base_model)
 
+print(with(summary(base_model), 1 - deviance/null.deviance))
+```
+
+```{r}
+#ward evaluate 
+ward_dat <- select(svi_temp, -c(cluster_diana, cluster_agnes, cluster_complete))
+#ward_1 <- subset(ward_dat, cluster_ward==1)
+ward_model <- glm(case_by_pop ~ ., data=ward_dat)
+summary(ward_model)
+
+print(with(summary(ward_model), 1 - deviance/null.deviance))
+```
+```{r}
+#complete evaluate 
+complete_dat <- select(svi_temp, -c(cluster_diana, cluster_agnes, cluster_ward))
+#ward_1 <- subset(ward_dat, cluster_ward==1)
+complete_model <- glm(case_by_pop ~ ., data=complete_dat)
+summary(complete_model)
+
+print(with(summary(complete_model), 1 - deviance/null.deviance))
+```
+
+```{r}
+#agnes evaluate 
+agnes_dat <- select(svi_temp, -c(cluster_diana, cluster_complete, cluster_ward))
+#ward_1 <- subset(ward_dat, cluster_ward==1)
+agnes_model <- glm(case_by_pop ~ ., data=agnes_dat)
+summary(agnes_model)
+
+print(with(summary(agnes_model), 1 - deviance/null.deviance))
+```
+
+```{r}
+#diana evaluate 
+diana_dat <- select(svi_temp, -c(cluster_agnes, cluster_complete, cluster_ward))
+#ward_1 <- subset(ward_dat, cluster_ward==1)
+diana_model <- glm(case_by_pop ~ ., data=diana_dat)
+summary(diana_model)
+
+print(with(summary(diana_model), 1 - deviance/null.deviance))
+```
 
 
