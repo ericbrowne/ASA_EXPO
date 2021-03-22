@@ -129,7 +129,7 @@ table(groups_a)
 table(groups_d)
 
 #add in population and 
-pop <- as_tibble(cbind(svi$FIPS, svi$E_TOTPOP))
+pop <- as_tibble(cbind(svi$FIPS, svi$E_TOTPOP)) #total pop taken from SVI 
 
 #get updated covid data
 library (readr)
