@@ -167,37 +167,40 @@ svi_temp$death_by_pop <- svi_temp$total_death / svi_temp$population
 
 
 ```{r}
-
-```
-
-
-```{r}
-ward <- aggregate(svi_clust, list(svi_clust$cluster_ward), mean)
+ward <- aggregate(svi_temp, list(svi_temp$cluster_ward), mean)
 ward
 ```
 
 ```{r}
-completeclust <- aggregate(svi_clust, list(svi_clust$cluster_complete), mean)
+completeclust <- aggregate(svi_temp, list(svi_temp$cluster_complete), mean)
 completeclust
 ```
 
 
 ```{r}
-agnes <- aggregate(svi_clust, list(svi_clust$cluster_agnes), mean)
+agnes <- aggregate(svi_temp, list(svi_temp$cluster_agnes), mean)
 agnes
 ```
 
 
 ```{r}
-diana <- aggregate(svi_clust, list(svi_clust$cluster_diana), mean)
+diana <- aggregate(svi_temp, list(svi_temp$cluster_diana), mean)
 diana
 ```
 
 # Cluster Evaluation
 ```{r}
+#remove similar features 
+eval_dat <- select(svi_temp, -c(FIPS, total_cases, total_death))
+
+#combine covid death and cases 
+eval_dat$covid <- eval_dat$case_by_pop + eval_dat$death_by_pop
+eval_dat <- select(eval_dat, -c(case_by_pop, death_by_pop))
+
+
 #base level prediction 
-noclust <- select(svi_temp, -c(cluster_diana, cluster_agnes, cluster_complete, cluster_ward))
-base_model <- glm(case_by_pop ~ ., data=svi_temp)
+noclust <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete, cluster_ward))
+base_model <- glm(covid ~ ., data=noclust)
 summary(base_model)
 
 print(with(summary(base_model), 1 - deviance/null.deviance))
@@ -205,18 +208,18 @@ print(with(summary(base_model), 1 - deviance/null.deviance))
 
 ```{r}
 #ward evaluate 
-ward_dat <- select(svi_temp, -c(cluster_diana, cluster_agnes, cluster_complete))
+ward_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete))
 #ward_1 <- subset(ward_dat, cluster_ward==1)
-ward_model <- glm(case_by_pop ~ ., data=ward_dat)
+ward_model <- glm(covid ~ ., data=ward_dat)
 summary(ward_model)
 
 print(with(summary(ward_model), 1 - deviance/null.deviance))
 ```
 ```{r}
 #complete evaluate 
-complete_dat <- select(svi_temp, -c(cluster_diana, cluster_agnes, cluster_ward))
+complete_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_ward))
 #ward_1 <- subset(ward_dat, cluster_ward==1)
-complete_model <- glm(case_by_pop ~ ., data=complete_dat)
+complete_model <- glm(covid ~ ., data=complete_dat)
 summary(complete_model)
 
 print(with(summary(complete_model), 1 - deviance/null.deviance))
@@ -224,9 +227,9 @@ print(with(summary(complete_model), 1 - deviance/null.deviance))
 
 ```{r}
 #agnes evaluate 
-agnes_dat <- select(svi_temp, -c(cluster_diana, cluster_complete, cluster_ward))
+agnes_dat <- select(eval_dat, -c(cluster_diana, cluster_complete, cluster_ward))
 #ward_1 <- subset(ward_dat, cluster_ward==1)
-agnes_model <- glm(case_by_pop ~ ., data=agnes_dat)
+agnes_model <- glm(covid ~ ., data=agnes_dat)
 summary(agnes_model)
 
 print(with(summary(agnes_model), 1 - deviance/null.deviance))
@@ -234,9 +237,9 @@ print(with(summary(agnes_model), 1 - deviance/null.deviance))
 
 ```{r}
 #diana evaluate 
-diana_dat <- select(svi_temp, -c(cluster_agnes, cluster_complete, cluster_ward))
+diana_dat <- select(eval_dat, -c(cluster_agnes, cluster_complete, cluster_ward))
 #ward_1 <- subset(ward_dat, cluster_ward==1)
-diana_model <- glm(case_by_pop ~ ., data=diana_dat)
+diana_model <- glm(covid ~ ., data=diana_dat)
 summary(diana_model)
 
 print(with(summary(diana_model), 1 - deviance/null.deviance))
