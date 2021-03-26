@@ -65,15 +65,13 @@ fviz_cluster(list(data = svi_temp, cluster = groups_w))
 
 
 ```{r}
-fviz_nbclust(svi_temp, FUN = hcut, method = "wss")
 
 #complete hierarchical clustering 
-#just thrwoing shit at the wall and seeing what sticks
 
 d <- dist(svi_temp, method = "euclidean") #translate data to distance
 fit <- hclust(d, method = "complete")
 plot(fit)
-groups_c <- cutree(fit, k = 3)
+groups_c <- cutree(fit, k = 4)
 
 table(groups_c)
 #plot.new()
@@ -89,6 +87,7 @@ fviz_cluster(list(data = svi_temp, cluster = groups_c))
 #agnes clustering 
 library(cluster)
 hc_a <- agnes(svi_temp, method = "average")
+plot(hc_a)
 groups_a <- cutree(as.hclust(hc_a), k = 3)
 
 table(groups_a)
@@ -105,7 +104,8 @@ fviz_cluster(list(data = svi_temp, cluster = groups_a))
 
 # Cut diana() tree into 
 hc_d <- diana(svi_temp)
-groups_d <- cutree(as.hclust(hc_d), k = 3)
+plot(hc_d)
+groups_d <- cutree(as.hclust(hc_d), k = 6)
 
 table(groups_d)
 hc_d$dc
