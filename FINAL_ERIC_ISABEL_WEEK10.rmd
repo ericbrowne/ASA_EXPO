@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 #install.packages("naniar")
+
+
 library(tidyverse)
 library(naniar)
 library(factoextra)
@@ -21,7 +23,7 @@ library(caret)
 #read in 
 #Social Vunerability Index
 
-svi <- read.csv("SVI2018_US_COUNTY.csv")
+svi <- read.csv("Datasets/SVI2018_US_COUNTY.csv")
 #drop none numeric columns (county/state names)
 svi_temp <- svi[-c(6:9)]
 #drop margins of error 
@@ -36,44 +38,57 @@ print(dim(svi_temp))
 ```
 ## Merge Together SVI and ACS for Clustering.  Then, Standardize Dataset for Clustering
 ```{r}
-svi_temp2 <- svi_temp[-c(2,3,4)]
-view(svi_temp2)
-
-acsMain<-read.csv('ACS_FINAL_v2.csv')
-acsMain_svi_merged<-inner_join(svi_temp2,acsMain,by = 'FIPS',suffix = c('.svi','.acsMain'))
-view(acsMain_svi_merged)
-
-
-## Standardize Dataset:
-acsMain_svi_merged_numeric<-subset(acsMain_svi_merged, select = -c(FIPS))
-acsMain_svi_merged_numeric<-sapply(acsMain_svi_merged_numeric, as.numeric )
-acsMain_svi_merged_numeric<-scale(acsMain_svi_merged_numeric)
-view(acsMain_svi_merged_numeric)
-
-## Need to Drop columns with All NA's
-
-
-acsMain_svi_merged_numeric<-acsMain_svi_merged_numeric[ , colSums(is.na(acsMain_svi_merged_numeric)) < nrow(acsMain_svi_merged_numeric)]
-view(acsMain_svi_merged_numeric)
-dim(acsMain_svi_merged_numeric)
-sum(is.na(acsMain_svi_merged_numeric))
-## Need to Fill remaining NA's with 0's
-acsMain_svi_merged_numeric[is.na(acsMain_svi_merged_numeric)]<-0
-sum(is.na(acsMain_svi_merged_numeric))
-
-FIPS<-acsMain_svi_merged$FIPS
-length(FIPS)
-acsMain_svi_scaled<-as.data.frame(acsMain_svi_merged_numeric)
-acsMain_svi_scaled$FIPS <- FIPS
-dim(acsMain_svi_scaled)
-
-## 'acsMain_svi_scaled'  will be the dataset we use for clustering
-## We will then add the Covid Deaths data from the NYT to use for Linear Regression
+# svi_temp2 <- svi_temp[-c(2,3,4)]
+# #view(svi_temp2)
+# 
+# acsMain<-read.csv('ACS_FINAL_v2.csv')
+# acsMain_svi_merged<-inner_join(svi_temp2,acsMain,by = 'FIPS',suffix = c('.svi','.acsMain'))
+# view(acsMain_svi_merged)
+# 
+# 
+# ## Standardize Dataset:
+# acsMain_svi_merged_numeric<-subset(acsMain_svi_merged, select = -c(FIPS))
+# acsMain_svi_merged_numeric<-sapply(acsMain_svi_merged_numeric, as.numeric )
+# acsMain_svi_merged_numeric<-scale(acsMain_svi_merged_numeric)
+# view(acsMain_svi_merged_numeric)
+# 
+# ## Need to Drop columns with All NA's
+# 
+# 
+# acsMain_svi_merged_numeric<-acsMain_svi_merged_numeric[ , colSums(is.na(acsMain_svi_merged_numeric)) < nrow(acsMain_svi_merged_numeric)]
+# view(acsMain_svi_merged_numeric)
+# dim(acsMain_svi_merged_numeric)
+# sum(is.na(acsMain_svi_merged_numeric))
+# ## Need to Fill remaining NA's with 0's
+# acsMain_svi_merged_numeric[is.na(acsMain_svi_merged_numeric)]<-0
+# sum(is.na(acsMain_svi_merged_numeric))
+# 
+# FIPS<-acsMain_svi_merged$FIPS
+# length(FIPS)
+# acsMain_svi_scaled<-as.tibble(acsMain_svi_merged_numeric)
+# acsMain_svi_scaled$FIPS <- FIPS
+# dim(acsMain_svi_scaled)
+# 
+# ## 'acsMain_svi_scaled'  will be the dataset we use for clustering
+# ## We will then add the Covid Deaths data from the NYT to use for Linear Regression
 ```
+
+```{r}
+#ERIC IS THIS OK??
+acsMain_svi_scaled <- read.csv("ACS_SVI_SCALED.csv") #use this temporarily 
+acsMain_svi_scaled <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$FIPS), mean)
+
+#what is X 
+acsMain_svi_scaled <- select(acsMain_svi_scaled, -c(X))
+names(acsMain_svi_scaled)[1] <- "FIPS"
+
+```
+
 
 ## Clustering Process.
 ```{r}
 #get ideal number of clusters 
+#thi is just estimates - dendrogram will be used to determine optimal clusters for each technique
 fviz_nbclust(acsMain_svi_scaled, FUN = hcut, method = "wss")
 fviz_nbclust(acsMain_svi_scaled, FUN = hcut, method = "silhouette")
 ```
@@ -181,8 +196,8 @@ dim(acsMain_svi_scaled) # check dimensions to make sure we added cols:
 names(pop) <- c("FIPS", "population")
 acsMain_svi_scaled <- merge(pop, acsMain_svi_scaled, by='FIPS') 
 #adjust covid totals to ratios of population
-acsMain_svi_scaled $case_by_pop <- acsMain_svi_scaled $total_cases / acsMain_svi_scaled $population
-acsMain_svi_scaled $death_by_pop <- acsMain_svi_scaled $total_death / acsMain_svi_scaled $population
+acsMain_svi_scaled$case_by_pop <- acsMain_svi_scaled $total_cases / acsMain_svi_scaled $population
+acsMain_svi_scaled$death_by_pop <- acsMain_svi_scaled $total_death / acsMain_svi_scaled $population
 
 ## CONSTRUCT our Response variable: Covid Impact
 # We will be using this variable as our response variable to predict using Linear Regression
@@ -311,31 +326,32 @@ summary(reg_diana)
 
 
 ```{r}
-ward <- aggregate(svi_temp, list(acsMain$cluster_ward), mean)
+ward <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_ward), mean)
 ward
 ```
 
 ```{r}
-completeclust <- aggregate(svi_temp, list(svi_temp$cluster_complete), mean)
+completeclust <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_complete), mean)
 completeclust
 ```
 
 
 ```{r}
-agnes <- aggregate(svi_temp, list(svi_temp$cluster_agnes), mean)
+agnes <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_agnes), mean)
 agnes
 ```
 
 
 ```{r}
-diana <- aggregate(svi_temp, list(svi_temp$cluster_diana), mean)
+diana <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_diana), mean)
 diana
 ```
 
 ## Cluster Evaluation
 ```{r}
+
 #remove similar features 
-eval_dat <- select(svi_temp, -c(FIPS, total_cases, total_death))
+eval_dat <- select(acsMain_svi_scaled, -c(FIPS, total_cases, total_death))
 #combine covid death and cases 
 eval_dat$covid <- eval_dat$case_by_pop + eval_dat$death_by_pop
 eval_dat <- select(eval_dat, -c(case_by_pop, death_by_pop))
@@ -343,6 +359,7 @@ eval_dat <- select(eval_dat, -c(case_by_pop, death_by_pop))
 noclust <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete, cluster_ward))
 base_model <- glm(covid ~ ., data=noclust)
 summary(base_model)
+
 print(with(summary(base_model), 1 - deviance/null.deviance))
 ```
 
@@ -354,6 +371,8 @@ ward_model <- glm(covid ~ ., data=ward_dat)
 summary(ward_model)
 print(with(summary(ward_model), 1 - deviance/null.deviance))
 ```
+
+
 ```{r}
 #complete evaluate 
 complete_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_ward))
