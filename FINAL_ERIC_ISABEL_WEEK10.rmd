@@ -228,6 +228,83 @@ acsMain_svi_scaled_DIANA$cluster_diana<-as.factor(acsMain_svi_scaled_DIANA$clust
 plot(density(acsMain_svi_scaled$covid_impact),main='Density Plot: Covid Impact per County (Response Variable)',ylab='Frequency')
 
 ## It appears to be approximately normally distributed, so lets continue with multiple linear regression:
+
+
+```
+
+
+
+
+```{r}
+ward <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_ward), mean)
+ward
+```
+
+```{r}
+completeclust <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_complete), mean)
+completeclust
+```
+
+
+```{r}
+agnes <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_agnes), mean)
+agnes
+```
+
+
+```{r}
+diana <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_diana), mean)
+diana
+```
+
+## Cluster Evaluation
+```{r}
+
+#remove similar features 
+eval_dat <- select(acsMain_svi_scaled, -c(FIPS, total_cases, total_death))
+#combine covid death and cases 
+eval_dat$covid <- eval_dat$case_by_pop + eval_dat$death_by_pop
+eval_dat <- select(eval_dat, -c(case_by_pop, death_by_pop))
+#base level prediction 
+noclust <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete, cluster_ward))
+base_model <- lm(covid ~ ., data=noclust)
+summary(base_model)
+
+```
+
+```{r}
+#ward evaluate 
+ward_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete))
+#ward_1 <- subset(ward_dat, cluster_ward==1)
+ward_model <- lm(covid ~ ., data=ward_dat)
+summary(ward_model)
+```
+
+
+```{r}
+#complete evaluate 
+complete_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_ward))
+#ward_1 <- subset(ward_dat, cluster_ward==1)
+complete_model <- lm(covid ~ ., data=complete_dat)
+summary(complete_model)
+```
+
+```{r}
+#agnes evaluate 
+agnes_dat <- select(eval_dat, -c(cluster_diana, cluster_complete, cluster_ward))
+#ward_1 <- subset(ward_dat, cluster_ward==1)
+agnes_model <- lm(covid ~ ., data=agnes_dat)
+summary(agnes_model)
+```
+
+```{r}
+#diana evaluate 
+diana_dat <- select(eval_dat, -c(cluster_agnes, cluster_complete, cluster_ward))
+#ward_1 <- subset(ward_dat, cluster_ward==1)
+diana_model <- lm(covid ~ ., data=diana_dat)
+summary(diana_model)
+
+
 ## First, lets split into Training and Testing Sets
 ## We will not be using a Validation Set, as out data sample is too small at only ~ 800 rows
 
@@ -255,19 +332,6 @@ test_agnes<-acsMain_svi_scaled_AGNES[-train_ind,]
 
 train_diana<-acsMain_svi_scaled_DIANA[train_ind,] #creates the training dataset with row numbers stored in train_ind
 test_diana<-acsMain_svi_scaled_DIANA[-train_ind,]
-
-## Run Models on entire subset-Dataset:
-reg_full_ward<-lm(covid_impact~.,data=acsMain_svi_scaled_WARD)
-summary(reg_full_ward)
-
-reg_full_complete<-lm(covid_impact~.,data=acsMain_svi_scaled_COMPLETE)
-summary(reg_full_complete)
-
-reg_full_agnes<-lm(covid_impact~.,data=acsMain_svi_scaled_AGNES)
-summary(reg_full_agnes)
-
-reg_full_diana<-lm(covid_impact~.,data=acsMain_svi_scaled_DIANA)
-summary(reg_full_diana)
 
 
 
@@ -306,96 +370,4 @@ print(RMSE(agnes_test_preds,test_agnes$covid_impact))
 diana_test_preds<-predict(reg_diana,test_diana)
 print(RMSE(diana_test_preds,test_diana$covid_impact))
 
-
-
-## Display Testing Model Summaries:
-# check R-squared values here:  getting ~0.5 which is half decent
-summary(reg_ward) 
-summary(reg_complete)
-summary(reg_agnes)
-summary(reg_diana)
-
-```
-
-
-
-
-
-
-
-
-
-```{r}
-ward <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_ward), mean)
-ward
-```
-
-```{r}
-completeclust <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_complete), mean)
-completeclust
-```
-
-
-```{r}
-agnes <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_agnes), mean)
-agnes
-```
-
-
-```{r}
-diana <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_diana), mean)
-diana
-```
-
-## Cluster Evaluation
-```{r}
-
-#remove similar features 
-eval_dat <- select(acsMain_svi_scaled, -c(FIPS, total_cases, total_death))
-#combine covid death and cases 
-eval_dat$covid <- eval_dat$case_by_pop + eval_dat$death_by_pop
-eval_dat <- select(eval_dat, -c(case_by_pop, death_by_pop))
-#base level prediction 
-noclust <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete, cluster_ward))
-base_model <- glm(covid ~ ., data=noclust)
-summary(base_model)
-
-print(with(summary(base_model), 1 - deviance/null.deviance))
-```
-
-```{r}
-#ward evaluate 
-ward_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete))
-#ward_1 <- subset(ward_dat, cluster_ward==1)
-ward_model <- glm(covid ~ ., data=ward_dat)
-summary(ward_model)
-print(with(summary(ward_model), 1 - deviance/null.deviance))
-```
-
-
-```{r}
-#complete evaluate 
-complete_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_ward))
-#ward_1 <- subset(ward_dat, cluster_ward==1)
-complete_model <- glm(covid ~ ., data=complete_dat)
-summary(complete_model)
-print(with(summary(complete_model), 1 - deviance/null.deviance))
-```
-
-```{r}
-#agnes evaluate 
-agnes_dat <- select(eval_dat, -c(cluster_diana, cluster_complete, cluster_ward))
-#ward_1 <- subset(ward_dat, cluster_ward==1)
-agnes_model <- glm(covid ~ ., data=agnes_dat)
-summary(agnes_model)
-print(with(summary(agnes_model), 1 - deviance/null.deviance))
-```
-
-```{r}
-#diana evaluate 
-diana_dat <- select(eval_dat, -c(cluster_agnes, cluster_complete, cluster_ward))
-#ward_1 <- subset(ward_dat, cluster_ward==1)
-diana_model <- glm(covid ~ ., data=diana_dat)
-summary(diana_model)
-print(with(summary(diana_model), 1 - deviance/null.deviance))
 ```
