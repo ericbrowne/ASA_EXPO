@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 #install.packages("naniar")
 
+library(AICcmodavg)
 
 library(tidyverse)
 library(naniar)
@@ -78,10 +79,9 @@ print(dim(svi_temp))
 acsMain_svi_scaled <- read.csv("ACS_SVI_SCALED.csv") #use this temporarily 
 acsMain_svi_scaled <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$FIPS), mean)
 
-#what is X 
-acsMain_svi_scaled <- select(acsMain_svi_scaled, -c(X))
+#X is unnecessary indexing
+acsMain_svi_scaled <-acsMain_svi_scaled[-c(2, 96)] #Drop X and second FIPS
 names(acsMain_svi_scaled)[1] <- "FIPS"
-
 ```
 
 
@@ -99,7 +99,7 @@ fviz_nbclust(acsMain_svi_scaled, FUN = hcut, method = "silhouette")
 d <- dist(acsMain_svi_scaled, method = "euclidean") #translate data to distance
 fit <- hclust(d, method = "ward.D2")
 plot(fit, cex = 0.6, hang = -1)
-groups_w <- cutree(fit, k = 3)
+groups_w <- cutree(fit, k = 2)
 table(groups_w)
 length(groups_w)
 #plot.new()
@@ -120,9 +120,8 @@ fviz_nbclust(acsMain_svi_scaled, FUN = hcut, method = "wss")
 d <- dist(acsMain_svi_scaled, method = "euclidean") #translate data to distance
 fit <- hclust(d, method = "complete")
 plot(fit)
-groups_c <- cutree(fit, k = 4)
+groups_c <- cutree(fit, k = 3)
 table(groups_c)
-length(groups_c)
 #plot.new()
 #rect.hclust(fit, k=5, border="red")
 fviz_cluster(list(data = acsMain_svi_scaled, cluster = groups_c))
@@ -134,7 +133,7 @@ fviz_cluster(list(data = acsMain_svi_scaled, cluster = groups_c))
 library(cluster)
 hc_a <- agnes(acsMain_svi_scaled, method = "average") # dendrogram
 plot(hc_a)
-groups_a <- cutree(as.hclust(hc_a), k = 3)
+groups_a <- cutree(as.hclust(hc_a), k = 2)
 table(groups_a)
 length(groups_a)
 hc_a$ac
@@ -148,7 +147,7 @@ fviz_cluster(list(data = acsMain_svi_scaled, cluster = groups_a))
 # Cut diana() tree into 
 hc_d <- diana(acsMain_svi_scaled) # dendrogram
 plot(hc_d)
-groups_d <- cutree(as.hclust(hc_d), k = 6)
+groups_d <- cutree(as.hclust(hc_d), k = 4)
 table(groups_d)
 hc_d$dc
 fviz_cluster(list(data = acsMain_svi_scaled, cluster = groups_d))
@@ -189,6 +188,7 @@ names(cv2) <- c("FIPS", "total_cases", "total_death")
 
 ## MERGE Together Deaths and ACS/SVI scaled:
 dim(acsMain_svi_scaled)
+
 acsMain_svi_scaled <- merge(cv2, acsMain_svi_scaled, by='FIPS') 
 dim(acsMain_svi_scaled) # check dimensions to make sure we added cols:
 
@@ -262,12 +262,11 @@ diana
 
 #remove similar features 
 eval_dat <- select(acsMain_svi_scaled, -c(FIPS, total_cases, total_death))
-#combine covid death and cases 
-eval_dat$covid <- eval_dat$case_by_pop + eval_dat$death_by_pop
+#remove covid
 eval_dat <- select(eval_dat, -c(case_by_pop, death_by_pop))
 #base level prediction 
 noclust <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete, cluster_ward))
-base_model <- lm(covid ~ ., data=noclust)
+base_model <- glm(covid_impact ~ ., data=noclust)
 summary(base_model)
 
 ```
@@ -276,7 +275,7 @@ summary(base_model)
 #ward evaluate 
 ward_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete))
 #ward_1 <- subset(ward_dat, cluster_ward==1)
-ward_model <- lm(covid ~ ., data=ward_dat)
+ward_model <- glm(covid_impact ~ ., data=ward_dat)
 summary(ward_model)
 ```
 
@@ -285,7 +284,7 @@ summary(ward_model)
 #complete evaluate 
 complete_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_ward))
 #ward_1 <- subset(ward_dat, cluster_ward==1)
-complete_model <- lm(covid ~ ., data=complete_dat)
+complete_model <- glm(covid_impact ~ ., data=complete_dat)
 summary(complete_model)
 ```
 
@@ -293,7 +292,7 @@ summary(complete_model)
 #agnes evaluate 
 agnes_dat <- select(eval_dat, -c(cluster_diana, cluster_complete, cluster_ward))
 #ward_1 <- subset(ward_dat, cluster_ward==1)
-agnes_model <- lm(covid ~ ., data=agnes_dat)
+agnes_model <- glm(covid_impact ~ ., data=agnes_dat)
 summary(agnes_model)
 ```
 
@@ -301,10 +300,27 @@ summary(agnes_model)
 #diana evaluate 
 diana_dat <- select(eval_dat, -c(cluster_agnes, cluster_complete, cluster_ward))
 #ward_1 <- subset(ward_dat, cluster_ward==1)
-diana_model <- lm(covid ~ ., data=diana_dat)
+diana_model <- glm(covid_impact ~ ., data=diana_dat)
 summary(diana_model)
 
+```
 
+#AIC Comparison of models
+```{r}
+models <- list(base_model, ward_model, complete_model, agnes_model, diana_model)
+
+model.names <- c("base_model", "ward_model", "complete_model", "agnes_model", "diana_model")
+
+aictab(cand.set = models, modnames = model.names)
+
+#export best model dat for mapping
+#reinclude FIPS for mapping
+complete_dat$FIPS <- acsMain_svi_scaled$FIPS
+write_csv(complete_dat, "Datasets/complete_clust_dat.csv")
+```
+
+
+```{r}
 ## First, lets split into Training and Testing Sets
 ## We will not be using a Validation Set, as out data sample is too small at only ~ 800 rows
 
@@ -342,32 +358,40 @@ reg_agnes<-lm(covid_impact ~ .,data=train_agnes)
 reg_diana<-lm(covid_impact ~ .,data=train_diana)
 
 
-## Calculate Training Error:
+## Calculate Training and Testing  Error:
+print("Ward Clustering")
 ward_train_preds<-predict(reg_ward,train_ward)
+print("Training:")
 print(RMSE(ward_train_preds,train_ward$covid_impact))
 
-complete_train_preds<-predict(reg_complete,train_complete)
-print(RMSE(complete_train_preds,train_complete$covid_impact))
-
-agnes_train_preds<-predict(reg_agnes,train_agnes)
-print(RMSE(agnes_train_preds,train_agnes$covid_impact))
-
-diana_train_preds<-predict(reg_diana,train_diana)
-print(RMSE(diana_train_preds,train_diana$covid_impact))
-
-
-## Calculate Testing Error and R-squared:
 ward_test_preds<-predict(reg_ward,test_ward)
+print("Testing:")
 print(RMSE(ward_test_preds,test_ward$covid_impact))
 
-
+print("Complete Clutser")
+complete_train_preds<-predict(reg_complete,train_complete)
+print("Training:  ")
+print(RMSE(complete_train_preds,train_complete$covid_impact))
 complete_test_preds<-predict(reg_complete,test_complete)
+print("Testing:  ")
 print(RMSE(complete_test_preds,test_complete$covid_impact))
 
+print("Agglomerative Nesting Clustering")
+agnes_train_preds<-predict(reg_agnes,train_agnes)
+print("Training:  ")
+print(RMSE(agnes_train_preds,train_agnes$covid_impact))
+
 agnes_test_preds<-predict(reg_agnes,test_agnes)
+print("Testing:  ")
 print(RMSE(agnes_test_preds,test_agnes$covid_impact))
 
+print("Divisive Analysis Clustering")
+diana_train_preds<-predict(reg_diana,train_diana)
+print("Training:  ")
+print(RMSE(diana_train_preds,train_diana$covid_impact))
 diana_test_preds<-predict(reg_diana,test_diana)
+print("Testing:  ")
 print(RMSE(diana_test_preds,test_diana$covid_impact))
+
 
 ```
