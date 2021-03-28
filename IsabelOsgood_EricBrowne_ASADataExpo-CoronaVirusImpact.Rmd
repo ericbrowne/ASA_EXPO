@@ -1,0 +1,374 @@
+---
+title: 'Corona Virus Impact: ASA Data Expo'
+author: "Isabel Osgood MSDS Candidate, Eric Browne MSDS Candidate, "
+date: "3/27/2021"
+output: html_document
+---
+
+## Imported Libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("naniar")
+library(AICcmodavg)
+library(tidyverse)
+library(naniar)
+library(factoextra)
+library(cluster)
+library(caTools)
+library(caret)
+```
+
+## Read in SVI 2018 County Dataset
+```{r}
+#
+#Social Vunerability Index
+svi <- read.csv("Datasets/SVI2018_US_COUNTY.csv")
+#drop none numeric columns (county/state names)
+svi_temp <- svi[-c(6:9)]
+#drop margins of error 
+#colnames(svi_temp)
+svi_temp <- svi_temp[, grep('^EP', colnames(svi_temp)) ]
+svi_temp$FIPS <- svi$FIPS
+colnames(svi_temp)
+svi_temp <- svi_temp %>% replace_with_na_all(condition = ~.x == -999) #converts -999 to na
+print(dim(svi_temp))
+svi_temp <- svi_temp %>% drop_na()  #drops NA - only lose one county 
+print(dim(svi_temp))
+```
+## Merge Together SVI and ACS for Clustering.  Then, Standardize Dataset for Clustering
+```{r}
+# svi_temp2 <- svi_temp[-c(2,3,4)]
+# #view(svi_temp2)
+# 
+# acsMain<-read.csv('ACS_FINAL_v2.csv')
+# acsMain_svi_merged<-inner_join(svi_temp2,acsMain,by = 'FIPS',suffix = c('.svi','.acsMain'))
+# view(acsMain_svi_merged)
+# 
+# 
+# ## Standardize Dataset:
+# acsMain_svi_merged_numeric<-subset(acsMain_svi_merged, select = -c(FIPS))
+# acsMain_svi_merged_numeric<-sapply(acsMain_svi_merged_numeric, as.numeric )
+# acsMain_svi_merged_numeric<-scale(acsMain_svi_merged_numeric)
+# view(acsMain_svi_merged_numeric)
+# 
+# ## Need to Drop columns with All NA's
+# 
+# 
+# acsMain_svi_merged_numeric<-acsMain_svi_merged_numeric[ , colSums(is.na(acsMain_svi_merged_numeric)) < nrow(acsMain_svi_merged_numeric)]
+# view(acsMain_svi_merged_numeric)
+# dim(acsMain_svi_merged_numeric)
+# sum(is.na(acsMain_svi_merged_numeric))
+# ## Need to Fill remaining NA's with 0's
+# acsMain_svi_merged_numeric[is.na(acsMain_svi_merged_numeric)]<-0
+# sum(is.na(acsMain_svi_merged_numeric))
+# 
+# FIPS<-acsMain_svi_merged$FIPS
+# length(FIPS)
+# acsMain_svi_scaled<-as.tibble(acsMain_svi_merged_numeric)
+# acsMain_svi_scaled$FIPS <- FIPS
+# dim(acsMain_svi_scaled)
+# 
+# ## 'acsMain_svi_scaled'  will be the dataset we use for clustering
+# ## We will then add the Covid Deaths data from the NYT to use for Linear Regression
+```
+
+## Import Scaled ACS Estimates
+```{r}
+
+acsMain_svi_scaled <- read.csv("ACS_SVI_SCALED.csv") 
+acsMain_svi_scaled <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$FIPS), mean)
+#X is unnecessary indexing
+acsMain_svi_scaled <-acsMain_svi_scaled[-c(2, 96)] #Drop X and second FIPS
+names(acsMain_svi_scaled)[1] <- "FIPS"
+```
+
+
+## Clustering Process.
+```{r}
+#get ideal number of clusters 
+#thi is just estimates - dendrogram will be used to determine optimal clusters for each technique
+fviz_nbclust(acsMain_svi_scaled, FUN = hcut, method = "wss")
+fviz_nbclust(acsMain_svi_scaled, FUN = hcut, method = "silhouette")
+```
+
+
+```{r}
+#ward hierarchical clustering 
+d <- dist(acsMain_svi_scaled, method = "euclidean") #translate data to distance
+fit <- hclust(d, method = "ward.D2")
+plot(fit, cex = 0.6, hang = -1)
+groups_w <- cutree(fit, k = 2)
+table(groups_w)
+length(groups_w)
+#plot.new()
+#rect.hclust(fit, k=5, border="red")
+```
+
+
+
+
+```{r}
+fviz_cluster(list(data = acsMain_svi_scaled, cluster = groups_w),main="Ward Cluster Plot")
+```
+
+
+```{r}
+fviz_nbclust(acsMain_svi_scaled, FUN = hcut, method = "wss")
+#complete hierarchical clustering 
+d <- dist(acsMain_svi_scaled, method = "euclidean") #translate data to distance
+fit <- hclust(d, method = "complete")
+plot(fit)
+groups_c <- cutree(fit, k = 3)
+table(groups_c)
+#plot.new()
+#rect.hclust(fit, k=5, border="red")
+fviz_cluster(list(data = acsMain_svi_scaled, cluster = groups_c),main="Complete Clustering Chart")
+```
+
+```{r}
+## agglomerative nesting 
+#We are calling this 'agnes' clustering for ease of use
+library(cluster)
+hc_a <- agnes(acsMain_svi_scaled, method = "average") # dendrogram
+plot(hc_a)
+groups_a <- cutree(as.hclust(hc_a), k = 2)
+table(groups_a)
+length(groups_a)
+hc_a$ac
+fviz_cluster(list(data = acsMain_svi_scaled, cluster = groups_a),main="Agglomerative Nesting Clustering Chart")
+```
+
+
+
+```{r}
+#diana clustering
+# Cut diana() tree into 
+hc_d <- diana(acsMain_svi_scaled) # dendrogram
+plot(hc_d)
+groups_d <- cutree(as.hclust(hc_d), k = 4)
+table(groups_d)
+hc_d$dc
+fviz_cluster(list(data = acsMain_svi_scaled, cluster = groups_d),main="Diana Clustering Chart")
+```
+
+## Combine COVID-19 NYT Data with Acs Scaled Estimates
+```{r}
+#add clusters to new dataframe: acsMain_svi_scaled
+acsMain_svi_scaled$cluster_ward = groups_w
+acsMain_svi_scaled$cluster_complete = groups_c
+acsMain_svi_scaled$cluster_agnes = groups_a
+acsMain_svi_scaled$cluster_diana = groups_d
+table(groups_w)
+table(groups_c)
+table(groups_a)
+table(groups_d)
+#add in population and 
+ pop <- as_tibble(cbind(svi$FIPS, svi$E_TOTPOP))
+#get updated covid data
+#library (readr)
+#cv<-read.csv(url("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"))
+#drop date bc we want aggregation
+#cv <- cv[-c(1)]
+
+#total_cases <- aggregate(cv$cases, by=list(fips=cv$fips), FUN=sum)
+#total_death <- aggregate(cv$deaths, by=list(fips=cv$fips), FUN = sum)
+#cv2 <- cbind(total_cases, total_death)
+#names(cv2) <- c("fips", "total_cases", "fips", "total_death")
+#write_csv(cv2, 'covid_data.csv')
+
+#####################################################
+## READ in Covid Deaths by County
+cv2 <- read_csv("covid_data.csv")
+cv2 <- cv2[c(1, 2, 4)]
+
+names(cv2) <- c("FIPS", "total_cases", "total_death")
+#add covid data to SVI
+
+## MERGE Together Deaths and ACS/SVI scaled:
+dim(acsMain_svi_scaled)
+acsMain_svi_scaled <- merge(cv2, acsMain_svi_scaled, by='FIPS') 
+dim(acsMain_svi_scaled) # check dimensions to make sure we added cols:
+## Merge in Population:
+names(pop) <- c("FIPS", "population")
+acsMain_svi_scaled <- merge(pop, acsMain_svi_scaled, by='FIPS') 
+#adjust covid totals to ratios of population
+acsMain_svi_scaled$case_by_pop <- acsMain_svi_scaled $total_cases / acsMain_svi_scaled $population
+acsMain_svi_scaled$death_by_pop <- acsMain_svi_scaled $total_death / acsMain_svi_scaled $population
+## CONSTRUCT our Response variable: Covid Impact
+# We will be using this variable as our response variable to predict using Linear Regression
+acsMain_svi_scaled $covid_impact = acsMain_svi_scaled $case_by_pop + acsMain_svi_scaled $death_by_pop
+dim(acsMain_svi_scaled)
+```
+
+## Linear Regression: Full Datasets, Training/Testing Sets
+
+```{r}
+## Now make subsets depending on cluster method.  Then make the 'ID' variable a category:
+# subset(mydata, select = -c(x,z) )
+
+#Ward Subset
+acsMain_svi_scaled_WARD<-subset(acsMain_svi_scaled, select = -c(cluster_complete,cluster_diana,cluster_agnes,case_by_pop,death_by_pop,total_death,total_cases))
+
+#Complete Subset
+acsMain_svi_scaled_COMPLETE<-subset(acsMain_svi_scaled, select = -c(cluster_ward,cluster_diana,cluster_agnes,case_by_pop,death_by_pop,total_death,total_cases))
+
+#Agnes Subset
+acsMain_svi_scaled_AGNES<-subset(acsMain_svi_scaled, select = -c(cluster_ward,cluster_complete,cluster_diana,case_by_pop,death_by_pop,total_death,total_cases))
+
+#Diana Subset
+acsMain_svi_scaled_DIANA<-subset(acsMain_svi_scaled, select = -c(cluster_ward,cluster_complete,cluster_agnes,case_by_pop,death_by_pop,total_death,total_cases))
+## Now change the clusterID variable in each subset to be a factor to be used in linear regression:
+#as.factor(mtcars$am): Example
+acsMain_svi_scaled_WARD$cluster_ward<-as.factor(acsMain_svi_scaled_WARD$cluster_ward)
+acsMain_svi_scaled_COMPLETE$cluster_complete<-as.factor(acsMain_svi_scaled_COMPLETE$cluster_complete)
+acsMain_svi_scaled_AGNES$cluster_agnes<-as.factor(acsMain_svi_scaled_AGNES$cluster_agnes)
+acsMain_svi_scaled_DIANA$cluster_diana<-as.factor(acsMain_svi_scaled_DIANA$cluster_diana)
+
+
+## Now we are ready for GLM of predicting Covid Impact (death_by_pop + case_by_pop)
+## The GLM with the highest R2 and lowest RMSE will correspond to the preferred clustering method
+## But before we do that, lets first plot to see if the response variable is approximately normally distributed:
+plot(density(acsMain_svi_scaled$covid_impact),main='Density Plot: Covid Impact per County (Response Variable)',ylab='Frequency')
+## It appears to be approximately normally distributed, so lets continue with multiple linear regression:
+```
+
+
+
+## Ward
+```{r}
+ward <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_ward), mean)
+ward
+```
+## Complete
+```{r}
+completeclust <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_complete), mean)
+completeclust
+```
+
+## Agnes
+```{r}
+agnes <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_agnes), mean)
+agnes
+
+```
+
+## Diana
+```{r}
+diana <- aggregate(acsMain_svi_scaled, list(acsMain_svi_scaled$cluster_diana), mean)
+diana
+```
+
+## Cluster Evaluation
+```{r}
+#remove similar features 
+#eval_dat <- select(acsMain_svi_scaled, -c(FIPS, total_cases, total_death))
+#remove covid
+#eval_dat <- select(eval_dat, -c(case_by_pop, death_by_pop))
+#base level prediction 
+noclust <- subset(acsMain_svi_scaled, select= -c(cluster_diana, cluster_agnes, cluster_complete, cluster_ward))
+base_model <- glm(covid_impact ~ ., data=noclust)
+summary(base_model)
+```
+
+```{r}
+## Ward Clustering evaluation
+#ward_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_complete))
+
+ward_model <- glm(covid_impact ~ ., data=acsMain_svi_scaled_WARD)
+summary(ward_model)
+```
+
+
+```{r}
+## Complete Clustering evaluate 
+#complete_dat <- select(eval_dat, -c(cluster_diana, cluster_agnes, cluster_ward))
+
+complete_model <- glm(covid_impact ~ ., data=acsMain_svi_scaled_COMPLETE)
+summary(complete_model)
+```
+
+```{r}
+## Agglomerative Clustering (AGNES) evaluation
+#agnes_dat <- select(eval_dat, -c(cluster_diana, cluster_complete, cluster_ward))
+
+agnes_model <- glm(covid_impact ~ ., data=acsMain_svi_scaled_AGNES)
+summary(agnes_model)
+```
+
+```{r}
+## Diana Clustering Evaluation
+
+#diana_dat <- select(eval_dat, -c(cluster_agnes, cluster_complete, cluster_ward))
+diana_model <- glm(covid_impact ~ ., data=acsMain_svi_scaled_DIANA)
+summary(diana_model)
+```
+
+#AIC Comparison of models
+```{r}
+models <- list(base_model, ward_model, complete_model, agnes_model, diana_model)
+model.names <- c("base_model", "ward_model", "complete_model", "agnes_model", "diana_model")
+aictab(cand.set = models, modnames = model.names)
+
+#export best model dat for mapping
+#reinclude FIPS for mapping
+complete_dat$FIPS <- acsMain_svi_scaled$FIPS
+write_csv(complete_dat, "Datasets/complete_clust_dat.csv")
+```
+
+
+## Linear Regression Using LM()
+```{r}
+## First, lets split into Training and Testing Sets
+## We will not be using a Validation Set, as out data sample is too small at only ~ 800 rows
+# Randomly identifies therows equal to sample size ( defined in previous instruction) from  all the rows of Smarket dataset and stores the row number in train_ind
+set.seed(42)
+train_size<-floor(0.7*nrow(acsMain_svi_scaled))
+train_ind<- sample(seq_len(nrow(acsMain_svi_scaled)),size = train_size)  
+## WARD
+train_ward<-acsMain_svi_scaled_WARD[train_ind,] #creates the training dataset with row numbers stored in train_ind
+test_ward<-acsMain_svi_scaled_WARD[-train_ind,]
+## COMPLETE
+train_complete<-acsMain_svi_scaled_COMPLETE[train_ind,] #creates the training dataset with row numbers stored in train_ind
+test_complete<-acsMain_svi_scaled_COMPLETE[-train_ind,]
+## AGNES
+train_agnes<-acsMain_svi_scaled_AGNES[train_ind,] #creates the training dataset with row numbers stored in train_ind
+test_agnes<-acsMain_svi_scaled_AGNES[-train_ind,]
+## DIANA
+train_diana<-acsMain_svi_scaled_DIANA[train_ind,] #creates the training dataset with row numbers stored in train_ind
+test_diana<-acsMain_svi_scaled_DIANA[-train_ind,]
+## Now that we have our training and testing sets for each subset of clustering method, lets run Linear Regression
+reg_ward<-lm(covid_impact ~.,data=train_ward)
+reg_complete<-lm(covid_impact ~ .,data=train_complete)
+reg_agnes<-lm(covid_impact ~ .,data=train_agnes)
+reg_diana<-lm(covid_impact ~ .,data=train_diana)
+
+## Calculate Training and Testing  Error:
+print("Ward Clustering")
+ward_train_preds<-predict(reg_ward,train_ward)
+print("Training RMSE:")
+print(RMSE(ward_train_preds,train_ward$covid_impact))
+ward_test_preds<-predict(reg_ward,test_ward)
+print("Testing RMSE:")
+print(RMSE(ward_test_preds,test_ward$covid_impact))
+print("Complete Clustering")
+complete_train_preds<-predict(reg_complete,train_complete)
+print("Training RMSE:  ")
+print(RMSE(complete_train_preds,train_complete$covid_impact))
+complete_test_preds<-predict(reg_complete,test_complete)
+print("Testing RMSE:  ")
+print(RMSE(complete_test_preds,test_complete$covid_impact))
+print("Agglomerative Nesting Clustering")
+agnes_train_preds<-predict(reg_agnes,train_agnes)
+print("Training RMSE:  ")
+print(RMSE(agnes_train_preds,train_agnes$covid_impact))
+agnes_test_preds<-predict(reg_agnes,test_agnes)
+print("Testing RMSE:  ")
+print(RMSE(agnes_test_preds,test_agnes$covid_impact))
+print("Divisive Analysis Clustering")
+diana_train_preds<-predict(reg_diana,train_diana)
+print("Training RMSE:  ")
+print(RMSE(diana_train_preds,train_diana$covid_impact))
+diana_test_preds<-predict(reg_diana,test_diana)
+print("Testing RMSE:  ")
+print(RMSE(diana_test_preds,test_diana$covid_impact))
+```
